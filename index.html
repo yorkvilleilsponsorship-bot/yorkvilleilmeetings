@@ -1,0 +1,476 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Yorkville City Meetings</title>
+
+<style>
+:root {
+  --navy: #173d65;
+  --blue: #245783;
+  --light: #f0f3f6;
+  --white: #ffffff;
+  --text: #26394c;
+  --muted: #68798b;
+  --line: #dce3e9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--light);
+  color: var(--text);
+  overflow: hidden;
+}
+
+header {
+  height: 145px;
+  background: var(--navy);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 25px 55px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.logo {
+  width: 76px;
+  height: 76px;
+  border: 3px solid white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42px;
+  font-weight: bold;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 43px;
+  letter-spacing: 3px;
+}
+
+.brand p {
+  margin: 7px 0 0;
+  font-size: 17px;
+  letter-spacing: 3px;
+  color: #dce8f3;
+}
+
+.clock {
+  text-align: right;
+}
+
+#time {
+  font-size: 39px;
+  font-weight: bold;
+}
+
+#date {
+  font-size: 17px;
+  margin-top: 5px;
+  color: #dce8f3;
+}
+
+.heading {
+  height: 120px;
+  padding: 28px 55px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.heading h2 {
+  color: var(--navy);
+  font-size: 38px;
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.heading p {
+  margin: 8px 0 0;
+  font-size: 17px;
+  color: var(--muted);
+}
+
+#meetingCount {
+  font-size: 19px;
+  color: var(--blue);
+  font-weight: bold;
+}
+
+main {
+  height: calc(100vh - 350px);
+  padding: 0 55px 20px;
+}
+
+#meetings {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.meeting {
+  background: white;
+  border-radius: 9px;
+  border-left: 8px solid var(--blue);
+  padding: 22px 27px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  box-shadow: 0 2px 8px rgba(20,45,70,.07);
+}
+
+.meeting h3 {
+  color: var(--navy);
+  font-size: 26px;
+  margin: 0 0 15px;
+  line-height: 1.2;
+}
+
+.detail {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 19px;
+  margin: 5px 0;
+  color: #46596c;
+}
+
+.detail .symbol {
+  width: 26px;
+  color: var(--blue);
+  font-weight: bold;
+}
+
+#message {
+  grid-column: 1 / -1;
+  background: white;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 35px;
+  font-size: 26px;
+  color: var(--muted);
+}
+
+footer {
+  height: 85px;
+  background: var(--navy);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 55px;
+  font-size: 17px;
+  letter-spacing: 1px;
+}
+
+@media (max-width: 1200px) {
+  .meeting h3 { font-size: 21px; }
+  .detail { font-size: 16px; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">Y</div>
+    <div>
+      <h1>YORKVILLE</h1>
+      <p>ILLINOIS</p>
+    </div>
+  </div>
+
+  <div class="clock">
+    <div id="time">--:--</div>
+    <div id="date">Loading...</div>
+  </div>
+</header>
+
+<section class="heading">
+  <div>
+    <h2>UPCOMING MEETINGS</h2>
+    <p>United City of Yorkville</p>
+  </div>
+  <div id="meetingCount">Loading meetings...</div>
+</section>
+
+<main>
+  <div id="meetings">
+    <div id="message">Connecting to the City Meetings calendar...</div>
+  </div>
+</main>
+
+<footer>
+  <span>UNITED CITY OF YORKVILLE</span>
+  <span>YORKVILLE.IL.US</span>
+</footer>
+
+<script>
+
+// ==========================================
+// YORKVILLE CITY MEETINGS CONFIGURATION
+// ==========================================
+
+// This URL will be supplied after we configure
+// the Google Apps Script RSS connection.
+
+const FEED_API_URL =
+"PASTE_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+const REFRESH_INTERVAL = 5 * 60 * 1000;
+const MAX_MEETINGS = 6;
+
+const TIME_ZONE = "America/Chicago";
+
+// ==========================================
+// CLOCK
+// ==========================================
+
+function updateClock() {
+
+  const now = new Date();
+
+  document.getElementById("time").textContent =
+    now.toLocaleTimeString("en-US", {
+      timeZone: TIME_ZONE,
+      hour: "numeric",
+      minute: "2-digit"
+    });
+
+  document.getElementById("date").textContent =
+    now.toLocaleDateString("en-US", {
+      timeZone: TIME_ZONE,
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric"
+    }).toUpperCase();
+
+}
+
+updateClock();
+setInterval(updateClock, 1000);
+
+// ==========================================
+// DISPLAY MESSAGE
+// ==========================================
+
+function showMessage(message) {
+
+  const container = document.getElementById("meetings");
+
+  container.innerHTML = "";
+
+  const box = document.createElement("div");
+  box.id = "message";
+  box.textContent = message;
+
+  container.appendChild(box);
+
+}
+
+// ==========================================
+// DATE HANDLING
+// ==========================================
+
+function meetingDate(item) {
+
+  // The feed service will provide an ISO date
+  // and a separate local meeting time.
+
+  const date = item.date || "";
+
+  if (!date) return null;
+
+  const time = item.time || "11:59 PM";
+
+  const parsed = new Date(date + " " + time);
+
+  if (!isNaN(parsed.getTime())) {
+    return parsed;
+  }
+
+  const isoDate = new Date(date);
+
+  if (!isNaN(isoDate.getTime())) {
+    return isoDate;
+  }
+
+  return null;
+}
+
+// ==========================================
+// CREATE MEETING CARDS
+// ==========================================
+
+function createMeeting(item) {
+
+  const card = document.createElement("div");
+  card.className = "meeting";
+
+  const title = document.createElement("h3");
+  title.textContent = item.title || "City Meeting";
+
+  card.appendChild(title);
+
+  addDetail(card, "▦", item.displayDate || item.date || "");
+  addDetail(card, "◷", item.time || "");
+  addDetail(card, "⌖", item.location || "");
+
+  return card;
+
+}
+
+function addDetail(card, symbol, value) {
+
+  if (!value) return;
+
+  const row = document.createElement("div");
+  row.className = "detail";
+
+  const icon = document.createElement("span");
+  icon.className = "symbol";
+  icon.textContent = symbol;
+
+  const text = document.createElement("span");
+  text.textContent = value;
+
+  row.appendChild(icon);
+  row.appendChild(text);
+
+  card.appendChild(row);
+
+}
+
+// ==========================================
+// LOAD RSS DATA
+// ==========================================
+
+async function loadMeetings() {
+
+  if (FEED_API_URL.indexOf("PASTE_") === 0) {
+    showMessage("Meeting calendar connection is being configured.");
+    document.getElementById("meetingCount").textContent =
+      "Calendar connection pending";
+    return;
+  }
+
+  try {
+
+    const response = await fetch(
+      FEED_API_URL + "?refresh=" + Date.now(),
+      { cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      throw new Error("Unable to load meeting feed");
+    }
+
+    const data = await response.json();
+
+    if (!data.items || !Array.isArray(data.items)) {
+      throw new Error("Invalid meeting data");
+    }
+
+    const now = new Date();
+
+    const meetings = data.items
+      .map(item => ({
+        ...item,
+        parsedDate: meetingDate(item)
+      }))
+      .filter(item =>
+        item.parsedDate &&
+        item.parsedDate.getTime() > now.getTime()
+      )
+      .sort((a, b) =>
+        a.parsedDate - b.parsedDate
+      )
+      .slice(0, MAX_MEETINGS);
+
+    renderMeetings(meetings);
+
+  } catch (error) {
+
+    console.log("Meeting feed error:", error);
+
+    showMessage(
+      "Meeting information is temporarily unavailable. Retrying automatically."
+    );
+
+    document.getElementById("meetingCount").textContent =
+      "Calendar temporarily unavailable";
+
+  }
+
+}
+
+// ==========================================
+// RENDER MEETINGS
+// ==========================================
+
+function renderMeetings(meetings) {
+
+  const container = document.getElementById("meetings");
+
+  container.innerHTML = "";
+
+  document.getElementById("meetingCount").textContent =
+    meetings.length + " UPCOMING MEETINGS";
+
+  if (meetings.length === 0) {
+
+    showMessage("There are currently no upcoming meetings scheduled.");
+
+    return;
+
+  }
+
+  meetings.forEach(item => {
+
+    container.appendChild(createMeeting(item));
+
+  });
+
+}
+
+// ==========================================
+// AUTOMATIC REFRESH
+// ==========================================
+
+loadMeetings();
+
+setInterval(loadMeetings, REFRESH_INTERVAL);
+
+</script>
+
+</body>
+</html>
